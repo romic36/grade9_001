@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Lesson Plan: Introduction to Databases</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Warm Neutrals" - A calm and professional palette with off-white, slate gray, and muted blue accents. -->
+    <!-- Application Structure Plan: The SPA is designed as a "Teacher's Dashboard" with an interactive, vertical timeline. This structure was chosen to be task-oriented for a teacher, allowing them to see the entire lesson flow at a glance and click to expand sections for detailed instructions as they teach. This non-linear access is more usable than a static document. Key interactions include expanding cards, a dynamic progress bar for time management, and modals for key information, creating a focused and efficient user experience. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Lesson Plan Structure -> Goal: Organize/Guide -> Viz/Method: Interactive Vertical Timeline Cards -> Interaction: Click to expand/collapse details. Justification: Breaks the lesson into manageable, chronological steps for the teacher. Library/Method: HTML/Tailwind/JS.
+        - Report Info: Key Concepts (Database, Field, etc.) -> Goal: Inform -> Viz/Method: HTML/CSS Diagram & Text Blocks -> Interaction: Highlighting key terms and visual connections. Justification: A visual diagram of table relationships is more intuitive than text alone. Library/Method: HTML/Tailwind.
+        - Report Info: Timings -> Goal: Track Progress -> Viz/Method: Dynamic Progress Bar -> Interaction: Bar updates as teacher clicks through lesson sections. Justification: Provides a live visual aid for classroom time management. Library/Method: HTML/Tailwind/JS.
+        - Report Info: Learning Objectives & Materials -> Goal: Inform -> Viz/Method: Modals -> Interaction: Click buttons to show/hide. Justification: Keeps essential, but not constantly needed, information accessible without cluttering the main view. Library/Method: HTML/Tailwind/JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .section-card {
+            transition: all 0.3s ease-in-out;
+            border-left-width: 4px;
+        }
+        .section-content {
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .section-card.active .section-content {
+            max-height: 1000px; /* Large enough for content */
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .table-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+        }
+        .db-table {
+            border: 2px solid #4B5563;
+            border-radius: 8px;
+            background-color: #F9FAFB;
+            width: 280px;
+        }
+        .db-table-header {
+            background-color: #4B5563;
+            color: white;
+            padding: 0.5rem;
+            font-weight: 600;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+        .db-field {
+            padding: 0.5rem;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .db-field:last-child {
+            border-bottom: none;
+        }
+        .primary-key {
+            background-color: #DBEAFE;
+            font-weight: 500;
+        }
+        .relationship-line {
+            width: 2px;
+            background-color: #3B82F6;
+            height: 40px;
+            position: relative;
+        }
+        .relationship-line::before, .relationship-line::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            border: 2px solid #3B82F6;
+            background-color: white;
+            border-radius: 50%;
+        }
+        .relationship-line::before { top: -5px; }
+        .relationship-line::after { bottom: -5px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Interactive Lesson Plan</h1>
+            <p class="text-lg text-gray-600 mt-1">Grade 9: Introduction to Databases</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 sm:mb-0">Lesson Overview</h2>
+                <div class="flex space-x-2">
+                    <button id="objectivesBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Learning Objectives</button>
+                    <button id="materialsBtn" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">Materials</button>
+                </div>
+            </div>
+            
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-base font-medium text-blue-700">Lesson Progress</span>
+                    <span id="progress-time" class="text-sm font-medium text-blue-700">0 / 40 minutes</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%; transition: width 0.5s ease-in-out;"></div>
+                </div>
+            </div>
+        </div>
+
+        <main id="lesson-flow">
+            <!-- Sections will be dynamically inserted here -->
+        </main>
+
+    </div>
+
+    <!-- Modals -->
+    <div id="objectivesModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
+            <h3 class="text-2xl font-bold mb-4">Learning Objectives</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li>Define a database, table, field, and record.</li>
+                <li>Explain the concept of a relational database.</li>
+                <li>Identify the purpose of defining data types for fields (e.g., text, number).</li>
+                <li>Articulate how a common field can create a relationship between two tables.</li>
+            </ul>
+            <button id="closeObjectives" class="mt-6 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full">Close</button>
+        </div>
+    </div>
+
+    <div id="materialsModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
+            <h3 class="text-2xl font-bold mb-4">Materials Required</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li>LCD Projector</li>
+                <li>Whiteboard or blackboard</li>
+                <li>Markers or chalk</li>
+                <li>A pre-prepared Google Sheets file with two simple, related tables (e.g., `Student Information` and `Student Grades`).</li>
+            </ul>
+            <button id="closeMaterials" class="mt-6 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 w-full">Close</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const lessonData = [
+                {
+                    id: 'intro',
+                    title: 'Introduction: What is a Database?',
+                    duration: 5,
+                    color: 'border-indigo-500',
+                    content: `
+                        <p class="mb-4">This section aims to hook the students and introduce the core concept of a database using real-world examples they can relate to. The goal is to establish a foundational understanding before diving into technical terms.</p>
+                        <h4 class="font-semibold text-gray-800 mb-2">Key Activities:</h4>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Hook Question:</strong> Ask students how the school keeps track of all their information (name, grades, attendance).</li>
+                            <li><strong>Real-World Connection:</strong> Discuss systems they use daily like a school portal, library catalog, or online shopping apps, explaining they all use databases.</li>
+                            <li><strong>Vocabulary Introduction:</strong> Introduce "database" as an organized collection of information designed for easy management and access.</li>
+                        </ul>
+                    `
+                },
+                {
+                    id: 'proper-a',
+                    title: 'Lesson Proper A: Tables, Fields, and Records',
+                    duration: 10,
+                    color: 'border-green-500',
+                    content: `
+                        <p class="mb-4">This part of the lesson breaks down the fundamental building blocks of a database. Using a visual demonstration with a familiar tool like Google Sheets helps make these abstract concepts concrete and understandable.</p>
+                        <h4 class="font-semibold text-gray-800 mb-2">Projector Demonstration Steps:</h4>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Table:</strong> Explain that an entire sheet (e.g., "Student Information") is a <strong>table</strong>, the main container for a specific set of data.</li>
+                            <li><strong>Fields:</strong> Point to column headers (e.g., 'Student ID', 'Full Name') and explain these are <strong>fields</strong>, defining the type of information in each column.</li>
+                            <li><strong>Data Types:</strong> Discuss why fields have data types (Number, Text, Date) and how this helps the computer process information correctly.</li>
+                            <li><strong>Records:</strong> Point to a full row and explain it's a <strong>record</strong>—a complete entry for one student.</li>
+                        </ul>
+                    `
+                },
+                {
+                    id: 'proper-b',
+                    title: 'Lesson Proper B: Relationships Between Tables',
+                    duration: 10,
+                    color: 'border-green-500',
+                    content: `
+                        <p class="mb-4">Here, we introduce the core concept of a relational database. The goal is for students to understand why and how tables are linked to create efficient and organized systems, avoiding data redundancy.</p>
+                        <h4 class="font-semibold text-gray-800 mb-2">Key Concepts & Demonstration:</h4>
+                        <ul class="list-disc list-inside space-y-2 mb-4">
+                            <li><strong>The Problem:</strong> Ask students if adding all subjects and grades to the main student table is a good idea. Guide them to see it would be inefficient.</li>
+                            <li><strong>The Solution:</strong> Introduce <strong>relational databases</strong>. Show a second table, "Student Grades."</li>
+                            <li><strong>Creating a Relationship:</strong> Highlight the common field, 'Student ID', in both tables. Explain this is the key that links them.</li>
+                            <li><strong>Visual Analogy:</strong> Use the analogy of a school ID card number linking all their records (health, grades, attendance) together.</li>
+                        </ul>
+                        <h4 class="font-semibold text-gray-800 mb-2">Visual Diagram:</h4>
+                        <div class="table-diagram p-4 bg-gray-100 rounded-lg mt-4">
+                            <div class="db-table">
+                                <div class="db-table-header">Student Information</div>
+                                <div class="db-field primary-key">Student ID (Primary Key)</div>
+                                <div class="db-field">Full Name</div>
+                                <div class="db-field">Advisory Class</div>
+                            </div>
+                            <div class="relationship-line" title="Relationship via 'Student ID'"></div>
+                            <div class="db-table">
+                                <div class="db-table-header">Student Grades</div>
+                                <div class="db-field primary-key">Student ID (Foreign Key)</div>
+                                <div class="db-field">Subject</div>
+                                <div class="db-field">Quarter Grade</div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    id: 'activity',
+                    title: 'Group Activity: "Design Your Database"',
+                    duration: 10,
+                    color: 'border-yellow-500',
+                    content: `
+                        <p class="mb-4">This hands-on, collaborative activity allows students to apply the concepts they've just learned in a creative and practical way. It solidifies their understanding by having them build a simple database schema from scratch.</p>
+                        <h4 class="font-semibold text-gray-800 mb-2">Instructions for Groups:</h4>
+                        <ol class="list-decimal list-inside space-y-2">
+                            <li><strong>Scenario:</strong> Imagine creating a database for a local library.</li>
+                            <li><strong>Task:</strong> Design two tables: 'Library Members' and 'Books'.</li>
+                            <li><strong>Steps:</strong>
+                                <ul class="list-disc list-inside ml-6 mt-1">
+                                    <li>Decide on the fields for each table.</li>
+                                    <li>Specify the data type for each field (Number, Text, etc.).</li>
+                                    <li>Identify a common field to link the tables (to track who checked out which book).</li>
+                                </ul>
+                            </li>
+                        </ol>
+                        <p class="mt-4"><strong>Teacher's Role:</strong> Circulate to facilitate discussion and check for understanding.</p>
+                    `
+                },
+                {
+                    id: 'conclusion',
+                    title: 'Conclusion and Assessment',
+                    duration: 5,
+                    color: 'border-red-500',
+                    content: `
+                        <p class="mb-4">This final segment wraps up the lesson by reinforcing key vocabulary and assessing student comprehension through group sharing and direct questions. It ensures the learning objectives have been met.</p>
+                        <h4 class="font-semibold text-gray-800 mb-2">Wrap-up Activities:</h4>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Group Sharing:</strong> Ask one or two groups to present their library database design.</li>
+                            <li><strong>Review Key Terms:</strong> Quickly recap Database, Table, Field, Record, and Relationship.</li>
+                            <li><strong>Assessment Q&A:</strong>
+                                <ul class="list-disc list-inside ml-6 mt-1">
+                                    <li>"Why is it more efficient to have two tables for a library instead of one big one?"</li>
+                                    <li>"What kind of data type would you use for a student's birthdate?"</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    `
+                }
+            ];
+
+            const lessonFlowContainer = document.getElementById('lesson-flow');
+            const progressBar = document.getElementById('progress-bar');
+            const progressTime = document.getElementById('progress-time');
+            let totalTime = 0;
+            let cumulativeTime = 0;
+            const sectionTimes = {};
+
+            lessonData.forEach(section => {
+                cumulativeTime += section.duration;
+                sectionTimes[section.id] = cumulativeTime;
+                const sectionEl = document.createElement('div');
+                sectionEl.className = `section-card bg-white rounded-lg shadow-sm mb-4 overflow-hidden cursor-pointer ${section.color}`;
+                sectionEl.id = section.id;
+                sectionEl.innerHTML = `
+                    <div class="p-4 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-900">${section.title}</h3>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-gray-500 font-medium">${section.duration} min</span>
+                            <svg class="w-6 h-6 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="section-content px-4 pb-4">
+                        ${section.content}
+                    </div>
+                `;
+                lessonFlowContainer.appendChild(sectionEl);
+            });
+
+            totalTime = cumulativeTime;
+
+            const sections = document.querySelectorAll('.section-card');
+            sections.forEach(section => {
+                section.addEventListener('click', () => {
+                    const currentlyActive = document.querySelector('.section-card.active');
+                    if (currentlyActive && currentlyActive !== section) {
+                        currentlyActive.classList.remove('active');
+                        currentlyActive.querySelector('svg').style.transform = 'rotate(0deg)';
+                    }
+
+                    section.classList.toggle('active');
+                    const icon = section.querySelector('svg');
+                    if (section.classList.contains('active')) {
+                        icon.style.transform = 'rotate(180deg)';
+                        const time = sectionTimes[section.id];
+                        const percentage = (time / totalTime) * 100;
+                        progressBar.style.width = `${percentage}%`;
+                        progressTime.textContent = `${time} / ${totalTime} minutes`;
+                    } else {
+                        icon.style.transform = 'rotate(0deg)';
+                        // Find previous section to set time
+                        const prevSection = section.previousElementSibling;
+                        if (prevSection) {
+                            const prevTime = sectionTimes[prevSection.id];
+                            const prevPercentage = (prevTime / totalTime) * 100;
+                            progressBar.style.width = `${prevPercentage}%`;
+                            progressTime.textContent = `${prevTime} / ${totalTime} minutes`;
+                        } else {
+                            progressBar.style.width = '0%';
+                            progressTime.textContent = `0 / ${totalTime} minutes`;
+                        }
+                    }
+                });
+            });
+
+            // Modal logic
+            const objectivesBtn = document.getElementById('objectivesBtn');
+            const materialsBtn = document.getElementById('materialsBtn');
+            const objectivesModal = document.getElementById('objectivesModal');
+            const materialsModal = document.getElementById('materialsModal');
+            const closeObjectives = document.getElementById('closeObjectives');
+            const closeMaterials = document.getElementById('closeMaterials');
+
+            const openModal = (modal) => {
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.add('opacity-100'), 10);
+            };
+
+            const closeModal = (modal) => {
+                modal.classList.remove('opacity-100');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            };
+
+            objectivesBtn.addEventListener('click', () => openModal(objectivesModal));
+            materialsBtn.addEventListener('click', () => openModal(materialsModal));
+            closeObjectives.addEventListener('click', () => closeModal(objectivesModal));
+            closeMaterials.addEventListener('click', () => closeModal(materialsModal));
+            objectivesModal.addEventListener('click', (e) => {
+                if (e.target === objectivesModal) closeModal(objectivesModal);
+            });
+            materialsModal.addEventListener('click', (e) => {
+                if (e.target === materialsModal) closeModal(materialsModal);
+            });
+        });
+    </script>
+</body>
+</html>
